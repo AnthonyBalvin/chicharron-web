@@ -2,37 +2,69 @@
 // src/components/Navbar.astro
 const { currentPage } = Astro.props;
 ---
-<aside class="bg-white border-r border-slate-200 flex flex-col">
-  <div class="flex items-center justify-between p-4 border-b border-slate-200">
-    <a href="/" class="text-2xl font-bold text-gray-800">
-      🐷 <span class="hidden md:inline">Chicharron App</span>
+<!-- Header fijo en móvil -->
+<header class="fixed md:hidden top-0 left-0 right-0 bg-white border-b border-slate-200 z-50 flex items-center justify-between p-4">
+  <a href="/" class="text-2xl font-bold text-gray-800">
+    🐷
+  </a>
+  <button id="menu-button" class="p-2 rounded-lg hover:bg-slate-100">
+    <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7" />
+    </svg>
+  </button>
+</header>
+
+<!-- Sidebar - Solo en desktop, o modal en móvil -->
+<aside id="navbar" class="bg-white border-r border-slate-200 flex flex-col fixed md:relative w-56 md:w-auto h-screen md:h-auto z-40 md:z-auto transform -translate-x-full md:translate-x-0 transition-transform duration-300 top-0 md:top-auto left-0 md:max-w-xs">
+  <div class="flex items-center justify-between p-4 border-b border-slate-200 md:hidden">
+    <a href="/" class="text-xl font-bold text-gray-800">
+      🐷 <span class="font-bold">App</span>
     </a>
-    <button id="menu-button" class="md:hidden p-2 rounded-lg hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-slate-400">
+    <button id="close-button" class="p-2 rounded-lg hover:bg-slate-100">
       <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7" />
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
       </svg>
     </button>
   </div>
 
-  <nav id="mobile-menu" class="hidden md:block flex-grow p-4">
+  <div class="hidden md:flex items-center p-4 border-b border-slate-200">
+    <a href="/" class="text-lg font-bold text-gray-800 whitespace-nowrap">
+      🐷 Chicharron
+    </a>
+  </div>
+
+  <nav class="flex-grow p-4 overflow-y-auto">
     <ul class="space-y-2">
       <li>
         <a href="/" class:list={[
-          "flex items-center space-x-3 p-3 rounded-lg transition-all duration-200",
-          currentPage === 'pedidos' 
-            ? "bg-yellow-500 text-white font-bold shadow-md" 
-            : "text-gray-600 hover:bg-slate-100 hover:text-gray-800"
+          "flex items-center space-x-3 p-3 rounded-lg transition-all whitespace-nowrap",
+          currentPage === 'añadir' 
+            ? "bg-blue-500 text-white font-bold shadow-md" 
+            : "text-gray-600 hover:bg-slate-100"
         ]}>
-          <span>📋</span>
-          <span>Pedidos</span>
+          <span>📝</span>
+          <span>Añadir Pedido</span>
         </a>
       </li>
+
+      <li>
+        <a href="/lista" class:list={[
+          "flex items-center space-x-3 p-3 rounded-lg transition-all whitespace-nowrap",
+          currentPage === 'lista' 
+            ? "bg-blue-500 text-white font-bold shadow-md" 
+            : "text-gray-600 hover:bg-slate-100"
+        ]}>
+          <span>📋</span>
+          <span>Lista de Pedidos</span>
+        </a>
+      </li>
+
       <li>
         <a href="/reportes" class:list={[
-          "flex items-center space-x-3 p-3 rounded-lg transition-all duration-200",
+          "flex items-center space-x-3 p-3 rounded-lg transition-all whitespace-nowrap",
           currentPage === 'reportes' 
             ? "bg-blue-500 text-white font-bold shadow-md" 
-            : "text-gray-600 hover:bg-slate-100 hover:text-gray-800"
+            : "text-gray-600 hover:bg-slate-100"
         ]}>
           <span>📊</span>
           <span>Reportes</span>
@@ -42,9 +74,43 @@ const { currentPage } = Astro.props;
   </nav>
 </aside>
 
+<!-- Overlay para cerrar menú en móvil -->
+<div id="menu-overlay" class="hidden fixed inset-0 bg-black/30 md:hidden z-30"></div>
+
 <script>
-  document.getElementById('menu-button').addEventListener('click', () => {
-    const menu = document.getElementById('mobile-menu');
-    menu.classList.toggle('hidden');
+  const menuButton = document.getElementById('menu-button');
+  const closeButton = document.getElementById('close-button');
+  const navbar = document.getElementById('navbar');
+  const menuOverlay = document.getElementById('menu-overlay');
+  const navLinks = document.querySelectorAll('#navbar a');
+
+  function closeMenu() {
+    navbar?.classList.add('-translate-x-full');
+    navbar?.classList.remove('translate-x-0');
+    menuOverlay?.classList.add('hidden');
+    menuOverlay?.classList.remove('block');
+  }
+
+  function openMenu() {
+    navbar?.classList.remove('-translate-x-full');
+    navbar?.classList.add('translate-x-0');
+    menuOverlay?.classList.remove('hidden');
+    menuOverlay?.classList.add('block');
+  }
+
+  menuButton?.addEventListener('click', openMenu);
+  closeButton?.addEventListener('click', closeMenu);
+  menuOverlay?.addEventListener('click', closeMenu);
+
+  // Cerrar menú al hacer click en un enlace
+  navLinks.forEach(link => {
+    link.addEventListener('click', closeMenu);
+  });
+
+  // Cerrar menú al cambiar el tamaño de la ventana a desktop
+  window.addEventListener('resize', () => {
+    if (window.innerWidth >= 768) {
+      closeMenu();
+    }
   });
 </script>

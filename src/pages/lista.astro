@@ -1,0 +1,11 @@
+---
+// src/pages/lista.astro
+import Layout from '../layouts/Layout.astro';
+import TablaPedidos from '../components/TablaPedidos.jsx';
+---
+
+<Layout title="Lista de Pedidos | Chicharron App" currentPage="lista">
+  <div class="space-y-12">
+    <TablaPedidos client:load />
+  </div>
+</Layout>

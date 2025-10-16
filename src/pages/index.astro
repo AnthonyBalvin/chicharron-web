@@ -2,13 +2,8 @@
 // src/pages/index.astro
 import FormularioPedido from '../components/FormularioPedido.astro';
 import Layout from '../layouts/Layout.astro';
-import TablaPedidos from '../components/TablaPedidos.jsx';
 ---
 
-<Layout title="Pedidos | Chicharron App" currentPage="pedidos">
-  <div class="space-y-12">
-    <FormularioPedido />
-    <div class="border-t border-slate-200"></div>
-    <TablaPedidos client:load />
-  </div>
+<Layout title="Añadir Pedido | Chicharron App" currentPage="añadir">
+  <FormularioPedido />
 </Layout>

@@ -5,7 +5,7 @@ import Navbar from '../components/Navbar.astro';
 
 export interface Props {
 	title: string;
-  currentPage: 'pedidos' | 'reportes';
+  currentPage: 'añadir' | 'lista' | 'reportes';
 }
 
 const { title, currentPage } = Astro.props;
@@ -21,13 +21,13 @@ const { title, currentPage } = Astro.props;
 		<title>{title}</title>
 	</head>
 	<body class="bg-slate-50">
-		<div class="min-h-screen grid grid-cols-1 md:grid-cols-[260px_1fr]">
+		<div class="flex md:grid md:grid-cols-[260px_1fr] min-h-screen">
 			
 			<div class="print:hidden">
 				<Navbar currentPage={currentPage} />
 			</div>
 
-			<main class="p-4 sm:p-6 lg:p-8 overflow-y-auto">
+			<main class="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto w-full pt-20 md:pt-0">
 				<slot />
 			</main>
 		</div>

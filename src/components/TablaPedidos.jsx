@@ -3,28 +3,22 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import ModalEditar from './ModalEditar.jsx';
 import ConfirmModal from './ConfirmModal.jsx';
+import { Pencil, Trash2, Search } from 'lucide-react';
 
 function TablaPedidos() {
   const [pedidos, setPedidos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [modalEditarAbierto, setModalEditarAbierto] = useState(false);
   const [pedidoActual, setPedidoActual] = useState(null);
-  const [confirmacionPendiente, setConfirmacionPendiente] = useState({
-    isOpen: false,
-    type: null, // 'danger' para eliminar, 'warning' para pagar
-    pedidoId: null,
-    action: null, // 'eliminar' o 'pagar'
-  });
-  const [modalExito, setModalExito] = useState({
-    isOpen: false,
-    mensaje: '',
-  });
+  const [filtro, setFiltro] = useState('todos');
+  const [terminoBusqueda, setTerminoBusqueda] = useState('');
+  const [confirmacionPendiente, setConfirmacionPendiente] = useState({ isOpen: false, type: null, action: null });
+  const [modalExito, setModalExito] = useState({ isOpen: false, mensaje: '' });
 
   const abrirModalEditar = (pedido) => {
     setPedidoActual(pedido);
     setModalEditarAbierto(true);
   };
-
   const cerrarModalEditar = () => {
     setModalEditarAbierto(false);
     setPedidoActual(null);
@@ -42,55 +36,50 @@ function TablaPedidos() {
     }
   };
 
-  const abrirConfirmEliminar = (pedidoId) => {
+  const abrirConfirmacion = (actionType, pedidoId) => {
+    let type = actionType === 'eliminar' ? 'danger' : 'warning';
     setConfirmacionPendiente({
       isOpen: true,
-      type: 'danger',
+      type: type,
       pedidoId: pedidoId,
-      action: 'eliminar',
+      action: actionType,
     });
-  };
-
-  const confirmarEliminar = async () => {
-    const { error } = await supabase.from('pedidos').delete().eq('id', confirmacionPendiente.pedidoId);
-    setConfirmacionPendiente({ isOpen: false, type: null, pedidoId: null, action: null });
-    if (error) {
-      alert('Error al eliminar: ' + error.message);
-    } else {
-      mostrarExito('¡Pedido eliminado correctamente!');
-      cargarPedidos();
-    }
-  };
-
-  const abrirConfirmPagar = (pedidoId) => {
-    setConfirmacionPendiente({
-      isOpen: true,
-      type: 'warning',
-      pedidoId: pedidoId,
-      action: 'pagar',
-    });
-  };
-
-  const confirmarPagar = async () => {
-    const { error } = await supabase.from('pedidos').update({ estado_pago: true }).eq('id', confirmacionPendiente.pedidoId);
-    setConfirmacionPendiente({ isOpen: false, type: null, pedidoId: null, action: null });
-    if (error) {
-      alert('Error al actualizar: ' + error.message);
-    } else {
-      mostrarExito('¡Pedido marcado como pagado!');
-      cargarPedidos();
-    }
   };
 
   const cerrarConfirmacion = () => {
     setConfirmacionPendiente({ isOpen: false, type: null, pedidoId: null, action: null });
   };
 
+  const handleConfirm = async () => {
+    const { action, pedidoId } = confirmacionPendiente;
+    let error;
+    let successMessage = '';
+    
+    if (action === 'eliminar') {
+      const { error: deleteError } = await supabase.from('pedidos').delete().eq('id', pedidoId);
+      error = deleteError;
+      successMessage = '¡Pedido eliminado correctamente!';
+    } else if (action === 'pagar') {
+      const { error: payError } = await supabase.from('pedidos').update({ estado_pago: true }).eq('id', pedidoId);
+      error = payError;
+      successMessage = '¡Pedido marcado como pagado!';
+    } else if (action === 'entregar') {
+      const { error: deliverError } = await supabase.from('pedidos').update({ estado_entrega: true }).eq('id', pedidoId);
+      error = deliverError;
+      successMessage = '¡Pedido marcado como entregado!';
+    }
+
+    cerrarConfirmacion();
+    if (error) {
+      alert('Error: ' + error.message);
+    } else {
+      mostrarExito(successMessage);
+      cargarPedidos();
+    }
+  };
+
   const mostrarExito = (mensaje) => {
-    setModalExito({
-      isOpen: true,
-      mensaje: mensaje,
-    });
+    setModalExito({ isOpen: true, mensaje: mensaje });
     setTimeout(() => {
       setModalExito({ isOpen: false, mensaje: '' });
     }, 1200);
@@ -98,14 +87,6 @@ function TablaPedidos() {
 
   const cerrarModalExito = () => {
     setModalExito({ isOpen: false, mensaje: '' });
-  };
-
-  const handleConfirm = () => {
-    if (confirmacionPendiente.action === 'eliminar') {
-      confirmarEliminar();
-    } else if (confirmacionPendiente.action === 'pagar') {
-      confirmarPagar();
-    }
   };
 
   async function cargarPedidos() {
@@ -127,54 +108,88 @@ function TablaPedidos() {
       window.removeEventListener('pedidoAgregado', handleNuevoPedido);
     };
   }, []);
+  
+  const pedidosFiltrados = pedidos
+    .filter((pedido) => {
+      if (filtro === 'pendiente') return !pedido.estado_entrega;
+      if (filtro === 'entregado') return pedido.estado_entrega;
+      return true;
+    })
+    .filter((pedido) => {
+      if (terminoBusqueda.trim() === '') return true;
+      const busquedaLower = terminoBusqueda.toLowerCase();
+      return (
+        pedido.nombre_cliente.toLowerCase().includes(busquedaLower) ||
+        pedido.responsable.toLowerCase().includes(busquedaLower)
+      );
+    });
 
   return (
-    <div className="max-w-4xl mx-auto">
-      <h2 className="text-3xl font-bold text-gray-800 mb-6 text-center">📋 Lista de Pedidos</h2>
+    <div className="w-full mx-auto">
+      <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
+        <h2 className="text-3xl font-bold text-gray-800">📋 Lista de Pedidos</h2>
+        <div className="relative w-full sm:w-auto">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <Search className="h-5 w-5 text-gray-400" />
+          </div>
+          <input
+            type="text"
+            placeholder="Buscar por cliente o responsable..."
+            value={terminoBusqueda}
+            onChange={(e) => setTerminoBusqueda(e.target.value)}
+            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+      </div>
+      
+      <div className="mb-6 flex gap-3 justify-center sm:justify-start flex-wrap">
+        <button onClick={() => setFiltro('todos')} className={`px-4 py-2 rounded-lg font-semibold transition-colors ${filtro === 'todos' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-800 hover:bg-gray-300'}`}>
+          📦 Todos ({pedidos.length})
+        </button>
+        <button onClick={() => setFiltro('pendiente')} className={`px-4 py-2 rounded-lg font-semibold transition-colors ${filtro === 'pendiente' ? 'bg-orange-500 text-white' : 'bg-gray-200 text-gray-800 hover:bg-gray-300'}`}>
+          ⏳ Pendientes ({pedidos.filter(p => !p.estado_entrega).length})
+        </button>
+        <button onClick={() => setFiltro('entregado')} className={`px-4 py-2 rounded-lg font-semibold transition-colors ${filtro === 'entregado' ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-800 hover:bg-gray-300'}`}>
+          ✅ Entregados ({pedidos.filter(p => p.estado_entrega).length})
+        </button>
+      </div>
+
       <div className="bg-white shadow-lg rounded-2xl overflow-hidden border border-slate-200">
         <div className="overflow-x-auto">
           <table className="min-w-full table-auto">
             <thead className="bg-slate-100 border-b-2 border-slate-200">
               <tr>
-                <th className="px-6 py-4 text-left text-sm font-bold text-slate-600 uppercase tracking-wider">Cliente</th>
-                <th className="px-6 py-4 text-left text-sm font-bold text-slate-600 uppercase tracking-wider">Responsable</th>
-                <th className="px-6 py-4 text-center text-sm font-bold text-slate-600 uppercase tracking-wider">Estado</th>
-                <th className="px-6 py-4 text-center text-sm font-bold text-slate-600 uppercase tracking-wider">Marcar Pago</th>
-                <th className="px-6 py-4 text-center text-sm font-bold text-slate-600 uppercase tracking-wider">Acciones</th>
+                <th className="p-4 text-left text-sm font-bold text-slate-600 uppercase">Cliente</th>
+                <th className="p-4 text-center text-sm font-bold text-slate-600 uppercase">Cant.</th>
+                <th className="p-4 text-center text-sm font-bold text-slate-600 uppercase">Pago</th>
+                <th className="p-4 text-center text-sm font-bold text-slate-600 uppercase">Entrega</th>
+                <th className="p-4 text-center text-sm font-bold text-slate-600 uppercase">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200">
               {loading ? (
                 <tr><td colSpan="5" className="text-center p-8 text-gray-500">Cargando...</td></tr>
-              ) : pedidos.length === 0 ? (
-                <tr><td colSpan="5" className="text-center p-8 text-gray-500">No hay pedidos registrados.</td></tr>
+              ) : pedidosFiltrados.length === 0 ? (
+                <tr><td colSpan="5" className="text-center p-8 text-gray-500">No se encontraron pedidos.</td></tr>
               ) : (
-                pedidos.map((pedido) => (
+                pedidosFiltrados.map((pedido) => (
                   <tr key={pedido.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-800">{pedido.nombre_cliente}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-gray-600">{pedido.responsable}</td>
-                    <td className="px-6 py-4 text-center">
-                      <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${pedido.estado_pago ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                        {pedido.estado_pago ? 'Pagado' : 'Debe'}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
+                    <td className="p-4 whitespace-nowrap"><p className="font-medium text-gray-800">{pedido.nombre_cliente}</p><p className="text-xs text-gray-500">Resp: {pedido.responsable}</p></td>
+                    <td className="p-4 text-center font-bold text-lg text-slate-700">{pedido.cantidad || 1}</td>
+                    <td className="p-4 text-center">
                       {!pedido.estado_pago ? (
-                        <button onClick={() => abrirConfirmPagar(pedido.id)} className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-1 px-3 rounded-md transition-colors">
-                          Pagar
-                        </button>
-                      ) : (
-                        <span className="text-green-500 font-bold">✓ Completado</span>
-                      )}
+                        <button onClick={() => abrirConfirmacion('pagar', pedido.id)} className="bg-red-500 hover:bg-red-600 text-white text-xs font-bold py-1 px-3 rounded-full">Pagar</button>
+                      ) : (<span className="text-green-600 font-bold">Pagado</span>)}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
+                    <td className="p-4 text-center">
+                      {!pedido.estado_entrega ? (
+                        <button onClick={() => abrirConfirmacion('entregar', pedido.id)} className="bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold py-1 px-3 rounded-full">Entregar</button>
+                      ) : (<span className="text-green-600 font-bold">Entregado</span>)}
+                    </td>
+                    <td className="p-4 text-center text-sm font-medium">
                       <div className="flex items-center justify-center space-x-2">
-                        <button onClick={() => abrirModalEditar(pedido)} className="p-2 rounded-full text-blue-500 hover:bg-blue-100 hover:text-blue-700 transition-colors" aria-label="Editar pedido">
-                          ✏️
-                        </button>
-                        <button onClick={() => abrirConfirmEliminar(pedido.id)} className="p-2 rounded-full text-red-500 hover:bg-red-100 hover:text-red-700 transition-colors" aria-label="Eliminar pedido">
-                          🗑️
-                        </button>
+                        <button onClick={() => abrirModalEditar(pedido)} className="p-2 rounded-full text-blue-500 hover:bg-blue-100" aria-label="Editar"><Pencil size={16} /></button>
+                        <button onClick={() => abrirConfirmacion('eliminar', pedido.id)} className="p-2 rounded-full text-red-500 hover:bg-red-100" aria-label="Eliminar"><Trash2 size={16} /></button>
                       </div>
                     </td>
                   </tr>
@@ -184,54 +199,32 @@ function TablaPedidos() {
           </table>
         </div>
       </div>
-
-      {/* Modal de Edición */}
-      <ModalEditar
-        pedido={pedidoActual}
-        onClose={cerrarModalEditar}
-        onSave={guardarCambios}
-      />
-
-      {/* Modal de Confirmación */}
+      <ModalEditar pedido={pedidoActual} onClose={cerrarModalEditar} onSave={guardarCambios}/>
       <ConfirmModal
         isOpen={confirmacionPendiente.isOpen}
         onClose={cerrarConfirmacion}
         onConfirm={handleConfirm}
         type={confirmacionPendiente.type}
         title={
-          confirmacionPendiente.action === 'eliminar'
-            ? '⚠️ Eliminar Pedido'
-            : confirmacionPendiente.action === 'pagar'
-            ? 'Marcar como Pagado'
-            : 'Confirmar'
+          confirmacionPendiente.action === 'eliminar' ? '⚠️ Eliminar Pedido' :
+          confirmacionPendiente.action === 'pagar' ? '💳 Marcar como Pagado' :
+          confirmacionPendiente.action === 'entregar' ? '📦 Marcar como Entregado' : 'Confirmar'
         }
         message={
-          confirmacionPendiente.action === 'eliminar'
-            ? 'Esta acción no se puede deshacer. ¿Estás seguro de que deseas eliminar este pedido?'
-            : confirmacionPendiente.action === 'pagar'
-            ? '¿Estás seguro de que quieres marcar este pedido como pagado?'
-            : 'Por favor confirma tu acción.'
+          confirmacionPendiente.action === 'eliminar' ? 'Esta acción es irreversible. ¿Estás seguro?' :
+          confirmacionPendiente.action === 'pagar' ? '¿Confirmas que este pedido ha sido pagado?' :
+          confirmacionPendiente.action === 'entregar' ? '¿Confirmas la entrega de este pedido?' : 'Por favor confirma.'
         }
       />
-
-      {/* Modal de Éxito */}
       {modalExito.isOpen && (
         <>
-          <div 
-            className="fixed inset-0 bg-black/30 backdrop-blur-sm z-40"
-            onClick={cerrarModalExito}
-          ></div>
+          <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-40" onClick={cerrarModalExito}></div>
           <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-sm animate-in fade-in zoom-in duration-300 p-8 text-center">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-8 text-center animate-in fade-in zoom-in">
               <div className="text-5xl mb-4">✓</div>
               <h3 className="text-xl font-bold text-green-600 mb-2">¡Éxito!</h3>
               <p className="text-slate-600 mb-6">{modalExito.mensaje}</p>
-              <button 
-                onClick={cerrarModalExito}
-                className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg transition-colors"
-              >
-                Cerrar
-              </button>
+              <button onClick={cerrarModalExito} className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg">Cerrar</button>
             </div>
           </div>
         </>

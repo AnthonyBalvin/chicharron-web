@@ -3,27 +3,32 @@
 ---
 <div class="max-w-xl mx-auto">
   <form id="form-pedido" class="bg-white shadow-lg rounded-2xl p-8 mb-4 border border-slate-200">
-    <h2 class="text-3xl font-bold text-gray-800 mb-6 text-center">
-      🐷 Añadir Nuevo Pedido
-    </h2>
+    <h2 class="text-3xl font-bold text-gray-800 mb-6 text-center">🐷 Añadir Nuevo Pedido</h2>
     
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
       <div>
         <label for="nombre_cliente" class="block text-gray-700 text-sm font-semibold mb-2">Nombre del Cliente</label>
-        <input type="text" id="nombre_cliente" name="nombre_cliente" class="shadow-sm appearance-none border border-gray-300 rounded-lg w-full py-3 px-4 text-gray-700 focus:outline-none focus:ring-2 focus:ring-yellow-500" placeholder="Ej: Juan Pérez" required />
+        <input type="text" id="nombre_cliente" name="nombre_cliente" class="shadow-sm appearance-none border border-gray-300 rounded-lg w-full py-3 px-4 text-gray-700" placeholder="Ej: Juan Pérez" required />
       </div>
       <div>
         <label for="responsable" class="block text-gray-700 text-sm font-semibold mb-2">Responsable</label>
-        <input type="text" id="responsable" name="responsable" class="shadow-sm appearance-none border border-gray-300 rounded-lg w-full py-3 px-4 text-gray-700 focus:outline-none focus:ring-2 focus:ring-yellow-500" placeholder="Ej: Anthony" required />
+        <input type="text" id="responsable" name="responsable" class="shadow-sm appearance-none border border-gray-300 rounded-lg w-full py-3 px-4 text-gray-700" placeholder="Ej: Anthony" required />
       </div>
     </div>
 
-    <div class="mb-8">
-      <label for="monto" class="block text-gray-700 text-sm font-semibold mb-2">Monto de la Venta (S/.)</label>
-      <input type="number" id="monto" name="monto" step="0.10" min="0" class="shadow-sm appearance-none border border-gray-300 rounded-lg w-full py-3 px-4 text-gray-700 focus:outline-none focus:ring-2 focus:ring-yellow-500" placeholder="Ej: 15.50" required />
+    {/* CAMBIO: Se invirtió el orden para mejor flujo */}
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+      <div>
+        <label for="cantidad" class="block text-gray-700 text-sm font-semibold mb-2">Cantidad de Platos</label>
+        <input type="number" id="cantidad" name="cantidad" min="1" value="1" class="shadow-sm appearance-none border border-gray-300 rounded-lg w-full py-3 px-4 text-gray-700" required />
+      </div>
+      <div>
+        <label for="monto" class="block text-gray-700 text-sm font-semibold mb-2">Monto Total (S/.)</label>
+        <input type="number" id="monto" name="monto" step="0.10" min="0" class="shadow-sm appearance-none border border-gray-300 rounded-lg w-full py-3 px-4 text-gray-700 bg-slate-50" placeholder="Ej: 20.00" required readonly />
+      </div>
     </div>
 
-    <button type="submit" class="w-full bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-3 px-4 rounded-lg focus:outline-none focus:shadow-outline transform hover:scale-105 transition duration-300">
+    <button type="submit" class="w-full bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-3 px-4 rounded-lg focus:outline-none focus:shadow-outline transform hover:scale-105 transition">
       Guardar Pedido
     </button>
   </form>
@@ -32,15 +37,34 @@
 <script>
   import { supabase } from '../lib/supabase';
 
+  // --- LÓGICA PARA AUTOCOMPLETAR EL MONTO ---
+  const PRECIO_POR_PLATO = 20;
+  const cantidadInput = document.getElementById('cantidad');
+  const montoInput = document.getElementById('monto');
+
+  // Función que calcula y actualiza el precio
+  function actualizarMonto() {
+    const cantidad = parseInt(cantidadInput.value, 10);
+    if (!isNaN(cantidad) && cantidad > 0) {
+      montoInput.value = (cantidad * PRECIO_POR_PLATO).toFixed(2);
+    } else {
+      // Si la cantidad es inválida, se pone en 0
+      montoInput.value = (0).toFixed(2);
+    }
+  }
+
+  // Calcula el monto inicial al cargar la página
+  document.addEventListener('DOMContentLoaded', actualizarMonto);
+  
+  // Escucha los cambios en el campo de cantidad para recalcular
+  cantidadInput.addEventListener('input', actualizarMonto);
+
+  // Lógica para enviar el formulario (sin cambios)
   document.getElementById('form-pedido')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     const form = e.target;
     const formData = new FormData(form);
     
-    const nombreCliente = formData.get('nombre_cliente');
-    const responsable = formData.get('responsable');
-    const monto = formData.get('monto');
-
     const button = form.querySelector('button[type="submit"]');
     button.disabled = true;
     button.textContent = 'Guardando...';
@@ -48,15 +72,19 @@
     const { error } = await supabase
       .from('pedidos')
       .insert({ 
-        nombre_cliente: nombreCliente, 
-        responsable: responsable,
-        monto: parseFloat(monto) // Convertimos el monto a número
+        nombre_cliente: formData.get('nombre_cliente'), 
+        responsable: formData.get('responsable'),
+        monto: parseFloat(formData.get('monto')),
+        cantidad: parseInt(formData.get('cantidad')),
       });
 
     if (error) {
       alert('Error al guardar: ' + error.message);
     } else {
       form.reset();
+      // Reinicia el valor de cantidad a 1 y recalcula el monto
+      cantidadInput.value = 1;
+      actualizarMonto();
       window.dispatchEvent(new Event('pedidoAgregado'));
     }
     button.disabled = false;

@@ -2,27 +2,29 @@
 import { useState, useEffect } from 'react';
 
 function ModalEditar({ pedido, onClose, onSave }) {
-  // 1. Añadimos 'estado_pago' al estado inicial
+  // 1. Añadimos 'estado_entrega' al estado inicial
   const [formData, setFormData] = useState({
     nombre_cliente: '',
     responsable: '',
     monto: 0,
-    estado_pago: false, 
+    estado_pago: false,
+    estado_entrega: false, // Nuevo campo
   });
 
-  // 2. Llenamos 'estado_pago' cuando el pedido carga
+  // 2. Llenamos 'estado_entrega' cuando el pedido carga
   useEffect(() => {
     if (pedido) {
       setFormData({
         nombre_cliente: pedido.nombre_cliente,
         responsable: pedido.responsable,
-        monto: pedido.monto,
+        monto: pedido.monto || 0,
         estado_pago: pedido.estado_pago,
+        estado_entrega: pedido.estado_entrega, // Nuevo campo
       });
     }
   }, [pedido]);
 
-  // 3. Actualizamos el manejador para que funcione con checkboxes
+  // El manejador de cambios ya funciona para checkboxes, no necesita cambios
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     setFormData(prev => ({
@@ -33,11 +35,13 @@ function ModalEditar({ pedido, onClose, onSave }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    // 4. Pasamos el estado de pago actualizado al guardar
+    // 3. Pasamos todos los datos actualizados al guardar
     onSave({
-      ...formData,
+      nombre_cliente: formData.nombre_cliente,
+      responsable: formData.responsable,
       monto: parseFloat(formData.monto) || 0,
       estado_pago: formData.estado_pago,
+      estado_entrega: formData.estado_entrega,
     });
   };
 
@@ -56,29 +60,25 @@ function ModalEditar({ pedido, onClose, onSave }) {
             {/* Campos de texto (sin cambios) */}
             <div>
               <label htmlFor="nombre_cliente_modal" className="block text-sm font-semibold text-gray-700">Nombre del Cliente</label>
-              <input type="text" id="nombre_cliente_modal" name="nombre_cliente" value={formData.nombre_cliente} onChange={handleChange} className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-yellow-500" required />
+              <input type="text" id="nombre_cliente_modal" name="nombre_cliente" value={formData.nombre_cliente} onChange={handleChange} className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500" required />
             </div>
             <div>
               <label htmlFor="responsable_modal" className="block text-sm font-semibold text-gray-700">Responsable</label>
-              <input type="text" id="responsable_modal" name="responsable" value={formData.responsable} onChange={handleChange} className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-yellow-500" required />
+              <input type="text" id="responsable_modal" name="responsable" value={formData.responsable} onChange={handleChange} className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500" required />
             </div>
             <div>
               <label htmlFor="monto_modal" className="block text-sm font-semibold text-gray-700">Monto (S/.)</label>
-              <input type="number" step="0.10" min="0" id="monto_modal" name="monto" value={formData.monto} onChange={handleChange} className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-yellow-500" required />
+              <input type="number" step="0.10" min="0" id="monto_modal" name="monto" value={formData.monto} onChange={handleChange} className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500" required />
             </div>
+          </div>
 
-            {/* 5. NUEVO INTERRUPTOR PARA EL ESTADO DE PAGO */}
-            <div className="pt-2">
-              <label htmlFor="estado_pago" className="block text-sm font-semibold text-gray-700 mb-2">Estado del Pago</label>
+          {/* 4. SECCIÓN DE INTERRUPTORES (ahora en una cuadrícula) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-6">
+            {/* Interruptor para Estado de Pago */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Estado del Pago</label>
               <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  name="estado_pago"
-                  id="estado_pago"
-                  checked={formData.estado_pago}
-                  onChange={handleChange}
-                  className="sr-only peer"
-                />
+                <input type="checkbox" name="estado_pago" checked={formData.estado_pago} onChange={handleChange} className="sr-only peer" />
                 <div className="w-11 h-6 bg-gray-200 rounded-full peer peer-focus:ring-2 peer-focus:ring-blue-300 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500"></div>
                 <span className="ml-3 text-sm font-medium text-gray-900">
                   {formData.estado_pago ? 'Pagado' : 'Pendiente'}
@@ -86,11 +86,23 @@ function ModalEditar({ pedido, onClose, onSave }) {
               </label>
             </div>
 
+            {/* Interruptor para Estado de Entrega */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Estado de Entrega</label>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" name="estado_entrega" checked={formData.estado_entrega} onChange={handleChange} className="sr-only peer" />
+                <div className="w-11 h-6 bg-gray-200 rounded-full peer peer-focus:ring-2 peer-focus:ring-orange-300 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-500"></div>
+                <span className="ml-3 text-sm font-medium text-gray-900">
+                  {formData.estado_entrega ? 'Entregado' : 'Pendiente'}
+                </span>
+              </label>
+            </div>
           </div>
 
+          {/* Botones de acción (sin cambios) */}
           <div className="mt-8 flex justify-end space-x-4">
             <button type="button" onClick={onClose} className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300">Cancelar</button>
-            <button type="submit" className="px-4 py-2 bg-yellow-500 text-white font-semibold rounded-lg hover:bg-yellow-600">Guardar Cambios</button>
+            <button type="submit" className="px-4 py-2 bg-blue-500 text-white font-semibold rounded-lg hover:bg-blue-600">Guardar Cambios</button>
           </div>
         </form>
       </div>
