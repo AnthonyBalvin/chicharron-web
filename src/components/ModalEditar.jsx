@@ -1,0 +1,101 @@
+// src/components/ModalEditar.jsx
+import { useState, useEffect } from 'react';
+
+function ModalEditar({ pedido, onClose, onSave }) {
+  // 1. Añadimos 'estado_pago' al estado inicial
+  const [formData, setFormData] = useState({
+    nombre_cliente: '',
+    responsable: '',
+    monto: 0,
+    estado_pago: false, 
+  });
+
+  // 2. Llenamos 'estado_pago' cuando el pedido carga
+  useEffect(() => {
+    if (pedido) {
+      setFormData({
+        nombre_cliente: pedido.nombre_cliente,
+        responsable: pedido.responsable,
+        monto: pedido.monto,
+        estado_pago: pedido.estado_pago,
+      });
+    }
+  }, [pedido]);
+
+  // 3. Actualizamos el manejador para que funcione con checkboxes
+  const handleChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value
+    }));
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    // 4. Pasamos el estado de pago actualizado al guardar
+    onSave({
+      ...formData,
+      monto: parseFloat(formData.monto) || 0,
+      estado_pago: formData.estado_pago,
+    });
+  };
+
+  if (!pedido) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl shadow-lg w-full max-w-lg">
+        <form onSubmit={handleSubmit} className="p-8">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-2xl font-bold text-gray-800">Editar Pedido</h2>
+            <button type="button" onClick={onClose} className="text-gray-400 hover:text-gray-600 text-3xl leading-none">&times;</button>
+          </div>
+
+          <div className="space-y-4">
+            {/* Campos de texto (sin cambios) */}
+            <div>
+              <label htmlFor="nombre_cliente_modal" className="block text-sm font-semibold text-gray-700">Nombre del Cliente</label>
+              <input type="text" id="nombre_cliente_modal" name="nombre_cliente" value={formData.nombre_cliente} onChange={handleChange} className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-yellow-500" required />
+            </div>
+            <div>
+              <label htmlFor="responsable_modal" className="block text-sm font-semibold text-gray-700">Responsable</label>
+              <input type="text" id="responsable_modal" name="responsable" value={formData.responsable} onChange={handleChange} className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-yellow-500" required />
+            </div>
+            <div>
+              <label htmlFor="monto_modal" className="block text-sm font-semibold text-gray-700">Monto (S/.)</label>
+              <input type="number" step="0.10" min="0" id="monto_modal" name="monto" value={formData.monto} onChange={handleChange} className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-yellow-500" required />
+            </div>
+
+            {/* 5. NUEVO INTERRUPTOR PARA EL ESTADO DE PAGO */}
+            <div className="pt-2">
+              <label htmlFor="estado_pago" className="block text-sm font-semibold text-gray-700 mb-2">Estado del Pago</label>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  name="estado_pago"
+                  id="estado_pago"
+                  checked={formData.estado_pago}
+                  onChange={handleChange}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-gray-200 rounded-full peer peer-focus:ring-2 peer-focus:ring-blue-300 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500"></div>
+                <span className="ml-3 text-sm font-medium text-gray-900">
+                  {formData.estado_pago ? 'Pagado' : 'Pendiente'}
+                </span>
+              </label>
+            </div>
+
+          </div>
+
+          <div className="mt-8 flex justify-end space-x-4">
+            <button type="button" onClick={onClose} className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300">Cancelar</button>
+            <button type="submit" className="px-4 py-2 bg-yellow-500 text-white font-semibold rounded-lg hover:bg-yellow-600">Guardar Cambios</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+export default ModalEditar;
