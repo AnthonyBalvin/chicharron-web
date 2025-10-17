@@ -1,7 +1,7 @@
 // src/components/Reportes.jsx
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { TrendingUp, TrendingDown, AlertCircle, DollarSign, CheckCircle, Printer } from 'lucide-react'; // 1. Importamos el ícono de impresora
+import { TrendingUp, TrendingDown, AlertCircle, DollarSign, CheckCircle, Printer, Soup } from 'lucide-react'; // 1. Se añade el ícono 'Soup'
 
 const formatCurrency = (amount) => {
   return new Intl.NumberFormat('es-PE', {
@@ -19,6 +19,7 @@ function Reportes() {
     porcentajePagado: 0,
     deudores: [],
     ultimosPagos: [],
+    totalPlatos: 0, // 2. Se añade el nuevo estado para el total de platos
   });
   const [loading, setLoading] = useState(true);
 
@@ -35,11 +36,14 @@ function Reportes() {
 
       let totalVendido = 0;
       let totalPagado = 0;
+      let totalPlatosVendidos = 0; // 3. Se añade una variable para contar los platos
       const deudoresMap = new Map();
       const ultimosPagosList = [];
 
       pedidos.forEach(p => {
         totalVendido += p.monto || 0;
+        totalPlatosVendidos += p.cantidad || 0; // 4. Se suman los platos de cada pedido
+        
         if (p.estado_pago) {
           totalPagado += p.monto || 0;
           ultimosPagosList.push(p);
@@ -60,6 +64,7 @@ function Reportes() {
         porcentajePagado: porcentajePagadoNum.toFixed(1),
         deudores: deudoresOrdenados,
         ultimosPagos: ultimosPagosList.slice(0, 5),
+        totalPlatos: totalPlatosVendidos, // 5. Se guarda el total de platos en el estado
       });
       setLoading(false);
     }
@@ -72,7 +77,6 @@ function Reportes() {
 
   return (
     <div className="w-full max-w-6xl mx-auto space-y-8">
-      {/* 2. Encabezado modificado con el botón de imprimir */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8 print:mb-4">
         <div>
           <h1 className="text-3xl sm:text-4xl font-bold text-gray-800">Reporte de Ventas</h1>
@@ -87,8 +91,9 @@ function Reportes() {
         </button>
       </div>
 
-      {/* 3. SECCIÓN DE TOTALES (con estilos para impresión) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      {/* SECCIÓN DE TOTALES */}
+      {/* 6. Se cambia a 4 columnas en pantallas grandes */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl shadow-lg p-6 text-white print:bg-white print:text-black print:shadow-none print:border">
           <div className="flex items-center justify-between mb-3">
             <div>
@@ -97,8 +102,21 @@ function Reportes() {
             </div>
             <div className="bg-blue-400 bg-opacity-30 p-3 rounded-xl print:hidden"><DollarSign size={32} /></div>
           </div>
-          <div className="text-sm print:text-gray-600 text-blue-100">{reportData.totalTransacciones} transacciones registradas</div>
+          <div className="text-sm print:text-gray-600 text-blue-100">{reportData.totalTransacciones} transacciones</div>
         </div>
+
+        {/* 7. NUEVA TARJETA: PLATOS VENDIDOS */}
+        <div className="bg-gradient-to-br from-slate-500 to-slate-600 rounded-2xl shadow-lg p-6 text-white print:bg-white print:text-black print:shadow-none print:border">
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <p className="font-semibold print:text-gray-600 text-slate-100">Platos Vendidos</p>
+              <p className="text-4xl font-extrabold mt-2">{reportData.totalPlatos}</p>
+            </div>
+            <div className="bg-slate-400 bg-opacity-30 p-3 rounded-xl print:hidden"><Soup size={32} /></div>
+          </div>
+          <div className="text-sm print:text-gray-600 text-slate-100">Cantidad total</div>
+        </div>
+        
         <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-2xl shadow-lg p-6 text-white print:bg-white print:text-black print:shadow-none print:border">
           <div className="flex items-center justify-between mb-3">
             <div>
@@ -109,7 +127,8 @@ function Reportes() {
           </div>
           <div className="text-sm print:text-gray-600 text-green-100">{reportData.porcentajePagado}% de las ventas</div>
         </div>
-        <div className="bg-gradient-to-br from-red-500 to-red-600 rounded-2xl shadow-lg p-6 text-white print:bg-white print:text-black print:shadow-none print:border sm:col-span-2 lg:col-span-1">
+        
+        <div className="bg-gradient-to-br from-red-500 to-red-600 rounded-2xl shadow-lg p-6 text-white print:bg-white print:text-black print:shadow-none print:border">
           <div className="flex items-center justify-between mb-3">
             <div>
               <p className="font-semibold print:text-gray-600 text-red-100">Por Cobrar</p>
@@ -121,7 +140,7 @@ function Reportes() {
         </div>
       </div>
 
-      {/* SECCIÓN DE LISTAS */}
+      {/* SECCIÓN DE LISTAS (Sin cambios) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 print:grid-cols-2">
         <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-8 print:shadow-none print:p-0">
           <div className="flex items-center gap-3 mb-6">
