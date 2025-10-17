@@ -2,7 +2,6 @@
 // src/components/Navbar.astro
 const { currentPage } = Astro.props;
 ---
-<!-- Header fijo en móvil -->
 <header class="fixed md:hidden top-0 left-0 right-0 bg-white border-b border-slate-200 z-50 flex items-center justify-between p-4">
   <a href="/" class="text-2xl font-bold text-gray-800">
     🐷
@@ -14,7 +13,6 @@ const { currentPage } = Astro.props;
   </button>
 </header>
 
-<!-- Sidebar - Solo en desktop, o modal en móvil -->
 <aside id="navbar" class="bg-white border-r border-slate-200 flex flex-col fixed md:relative w-56 md:w-auto h-screen md:h-auto z-40 md:z-auto transform -translate-x-full md:translate-x-0 transition-transform duration-300 top-0 md:top-auto left-0 md:max-w-xs">
   <div class="flex items-center justify-between p-4 border-b border-slate-200 md:hidden">
     <a href="/" class="text-xl font-bold text-gray-800">
@@ -58,6 +56,19 @@ const { currentPage } = Astro.props;
           <span>Lista de Pedidos</span>
         </a>
       </li>
+      
+      {/* --- NUEVO: Enlace para Deudores --- */}
+      <li>
+        <a href="/deudores" class:list={[
+          "flex items-center space-x-3 p-3 rounded-lg transition-all whitespace-nowrap",
+          currentPage === 'deudores' 
+            ? "bg-blue-500 text-white font-bold shadow-md" 
+            : "text-gray-600 hover:bg-slate-100"
+        ]}>
+          <span>💸</span>
+          <span>Deudores</span>
+        </a>
+      </li>
 
       <li>
         <a href="/reportes" class:list={[
@@ -74,7 +85,6 @@ const { currentPage } = Astro.props;
   </nav>
 </aside>
 
-<!-- Overlay para cerrar menú en móvil -->
 <div id="menu-overlay" class="hidden fixed inset-0 bg-black/30 md:hidden z-30"></div>
 
 <script>
@@ -102,12 +112,10 @@ const { currentPage } = Astro.props;
   closeButton?.addEventListener('click', closeMenu);
   menuOverlay?.addEventListener('click', closeMenu);
 
-  // Cerrar menú al hacer click en un enlace
   navLinks.forEach(link => {
     link.addEventListener('click', closeMenu);
   });
 
-  // Cerrar menú al cambiar el tamaño de la ventana a desktop
   window.addEventListener('resize', () => {
     if (window.innerWidth >= 768) {
       closeMenu();
